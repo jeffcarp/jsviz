@@ -3,19 +3,21 @@ const path = require('path');
 const esprima = require('esprima');
 const estraverse = require('estraverse');
 const glob = require('glob');
+const csvStringify = require('csv-stringify');
 
-const baseDir = '/home/vagrant/bt/braintree.js/src';
+const baseDir = '/home/vagrant/bt/braintree-dropin.js/src';
 
 glob(baseDir+'/**/*.js', {}, function (er, files) {
-  //console.log(files);
 
   const fileList = files.filter(function (fileName) {
-    return fileName.indexOf('node_modules') === -1;
+    return (
+      fileName.indexOf('node_modules') === -1 &&
+      fileName.indexOf('shared/intro') === -1 && // not a real file
+      fileName.indexOf('shared/outro') === -1 // not a real file
+    );
   }).map(function (fileName) {
     return path.resolve(fileName);
   });
-
-  //console.log(fileList);
 
   var requiresByFile = {};
 
@@ -28,9 +30,6 @@ glob(baseDir+'/**/*.js', {}, function (er, files) {
 
     estraverse.traverse(ast, {
       enter: function (node, parent) {
-        if (fileName === '/home/vagrant/bt/braintree.js/src/integrations/index.js') {
-          console.log(node);
-        }
         if (nodeIsRequireCall(node)) {
           var requireTarget = node.arguments[0].value;
 
@@ -51,7 +50,7 @@ glob(baseDir+'/**/*.js', {}, function (er, files) {
     console.log(requiresByFile[requireTarget]);
   });
 
-  exportGraphToD3(requiresByFile);
+  exportGraphToD3_2(requiresByFile);
 });
 
 function nodeIsRequireCall(node) {
@@ -87,7 +86,7 @@ function exportGraphToD3(graph) {
     var niceTitle = graphNode.replace(baseDir, '');
     return {
       name: niceTitle,
-      group: 1 // TODO: remove this dependency
+      group: 1
     };
   });
 
@@ -108,4 +107,27 @@ function exportGraphToD3(graph) {
 
   var d3DataJson = JSON.stringify(d3Data);
   fs.writeFileSync('./graph/data2.json', d3DataJson, 'utf8');
+}
+
+function exportGraphToD3_2(graph) {
+  var input = [
+    ['source', 'target', 'value'],
+  ];
+
+  Object.keys(graph).forEach(function (graphNode) {
+    graph[graphNode].forEach(function (graphLink) {
+
+      var niceFrom = graphNode.replace(baseDir, '');
+      var niceTo = graphLink.replace(baseDir, '');
+
+      input.push([
+        niceFrom, niceTo, '1.0'
+      ]);
+
+    });
+  });
+
+  csvStringify(input, function(err, output) {
+    fs.writeFileSync('./graph/data2.csv', output, 'utf8');
+  });
 }
