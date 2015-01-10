@@ -1,7 +1,3 @@
-// Read in every js file in directory
-// Analyze module.exports for each file
-// Also analyze requires
-
 const fs = require('fs');
 const path = require('path');
 const esprima = require('esprima');
@@ -32,7 +28,6 @@ glob("../../bt/braintree.js/src/**/*.js", {}, function (er, files) {
       enter: function (node, parent) {
         if (nodeIsRequireCall(node)) {
           var requireTarget = node.declarations[0].init.arguments[0].value;
-          //console.log('found require in '+fileName+': '+requireTarget);
           var qualifiedFileName = qualifyFileName(fileName, requireTarget);
           if (requiresByFile[fileName].indexOf(qualifiedFileName) === -1) {
             requiresByFile[fileName].push(qualifiedFileName);
