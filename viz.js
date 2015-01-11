@@ -1,57 +1,81 @@
-const fs = require('fs');
-const path = require('path');
-const esprima = require('esprima');
-const estraverse = require('estraverse');
-const glob = require('glob');
-const csvStringify = require('csv-stringify');
+var fs = require('fs');
+var path = require('path');
+var esprima = require('esprima');
+var estraverse = require('estraverse');
+var glob = require('glob');
+var csvStringify = require('csv-stringify');
 
-const baseDir = '/home/vagrant/bt/braintree-dropin.js/src';
+module.exports.graph = function (targetDir, callback) {
 
-glob(baseDir+'/**/*.js', {}, function (er, files) {
+  if (!fs.existsSync(targetDir)) {
+    callback(new Error('directory not found: '+targetDir));
+    return;
+  }
 
-  const fileList = files.filter(function (fileName) {
-    return (
-      fileName.indexOf('node_modules') === -1 &&
-      fileName.indexOf('shared/intro') === -1 && // not a real file
-      fileName.indexOf('shared/outro') === -1 // not a real file
-    );
-  }).map(function (fileName) {
-    return path.resolve(fileName);
-  });
+  glob(targetDir+'/**/*.js', {}, function (err, files) {
 
-  var requiresByFile = {};
+    if (err) {
+      callback(err);
+      return;
+    }
 
-  fileList.forEach(function (fileName) {
-
-    var contents = fs.readFileSync(fileName, 'utf8');
-
-    var ast = esprima.parse(contents);
-    requiresByFile[fileName] = requiresByFile[fileName] || [];
-
-    estraverse.traverse(ast, {
-      enter: function (node, parent) {
-        if (nodeIsRequireCall(node)) {
-          var requireTarget = node.arguments[0].value;
-
-          var qualifiedFileName = qualifyFileName(fileName, requireTarget);
-
-          if (requiresByFile[fileName].indexOf(qualifiedFileName) === -1) {
-            requiresByFile[qualifiedFileName] = requiresByFile[qualifiedFileName] || [];
-            requiresByFile[fileName].push(qualifiedFileName);
-          }
-        }
-      },
+    var fileList = files.filter(function (fileName) {
+      return fileName.indexOf('node_modules') === -1;
+    }).map(function (fileName) {
+      return path.resolve(fileName);
     });
-  });
 
-  console.log();
-  Object.keys(requiresByFile).forEach(function (requireTarget) {
-    console.log('requires in '+requireTarget+':');
-    console.log(requiresByFile[requireTarget]);
-  });
+    var requiresByFile = {};
 
-  exportGraphToD3_2(requiresByFile);
-});
+    fileList.forEach(function (fileName) {
+
+      var contents = fs.readFileSync(fileName, 'utf8');
+
+      var ast = esprima.parse(contents);
+      var qualifiedFileName = qualifyFileName(fileName, fileName);
+      requiresByFile[qualifiedFileName] = requiresByFile[qualifiedFileName] || [];
+
+      estraverse.traverse(ast, {
+        enter: function (node, parent) {
+          if (nodeIsRequireCall(node)) {
+            var requireTarget = node.arguments[0].value;
+            var qualifiedRequireName = qualifyFileName(fileName, requireTarget);
+
+            if (requiresByFile[qualifiedFileName].indexOf(qualifiedRequireName) === -1) {
+              requiresByFile[qualifiedRequireName] = requiresByFile[qualifiedRequireName] || [];
+              requiresByFile[qualifiedFileName].push(qualifiedRequireName);
+            }
+          }
+        },
+      });
+    });
+
+    callback(null, requiresByFile);
+  });
+};
+
+module.exports.html = function (graph, callback) {
+
+  // turn graph into d3-able data structure
+  // append everything together
+  var links = exportGraphToD3(graph);
+  var linksStr = JSON.stringify(links);
+  var dataTemplate = 'var links = '+linksStr;
+
+  var templates = [
+    getTemplate('top.html'),
+    dataTemplate,
+    getTemplate('render.js'),
+    getTemplate('bottom.html')
+  ];
+
+  callback(null, templates.join(''));
+};
+
+function getTemplate(name) {
+  var base = __dirname + '/templates/';
+  return fs.readFileSync(base + name);
+}
 
 function nodeIsRequireCall(node) {
   return (
@@ -62,72 +86,32 @@ function nodeIsRequireCall(node) {
   );
 }
 
-function qualifyFileName(sourceFile, fileName) {
-  if (fileName.indexOf('.') === -1) {
-    return fileName;
+function qualifyFileName(sourceFile, requireName) {
+  if (requireName.indexOf('.') === -1) {
+    return requireName;
   } else {
-    if (path.extname(fileName) !== '.js') {
-      fileName += '.js';
+    if (path.extname(requireName) !== '.js') {
+      requireName += '.js';
     }
-    return path.resolve(path.dirname(sourceFile), fileName);
+    var resolvedPath = path.resolve(path.dirname(sourceFile), requireName);
+    var cleanPath = resolvedPath.replace(__dirname, '');
+    return cleanPath;
   }
 }
 
-// Takes a directed, acyclic graph of type
-// Object<Array> and converts it into D3's
-// force directed graph data object
 function exportGraphToD3(graph) {
-  var d3Data = {
-    nodes: [],
-    links: []
-  };
-
-  d3Data.nodes = Object.keys(graph).map(function (graphNode) {
-    var niceTitle = graphNode.replace(baseDir, '');
-    return {
-      name: niceTitle,
-      group: 1
-    };
-  });
+  var output = [];
 
   Object.keys(graph).forEach(function (graphNode) {
     graph[graphNode].forEach(function (graphLink) {
 
-      var sourceIndex = Object.keys(graph).indexOf(graphNode);
-      var targetIndex = Object.keys(graph).indexOf(graphLink);
-
-      d3Data.links.push({
-        source: sourceIndex,
-        target: targetIndex,
-        value: 5
+      output.push({
+        source: graphNode,
+        target: graphLink,
+        value: '1.0'
       });
-
     });
   });
 
-  var d3DataJson = JSON.stringify(d3Data);
-  fs.writeFileSync('./graph/data2.json', d3DataJson, 'utf8');
-}
-
-function exportGraphToD3_2(graph) {
-  var input = [
-    ['source', 'target', 'value'],
-  ];
-
-  Object.keys(graph).forEach(function (graphNode) {
-    graph[graphNode].forEach(function (graphLink) {
-
-      var niceFrom = graphNode.replace(baseDir, '');
-      var niceTo = graphLink.replace(baseDir, '');
-
-      input.push([
-        niceFrom, niceTo, '1.0'
-      ]);
-
-    });
-  });
-
-  csvStringify(input, function(err, output) {
-    fs.writeFileSync('./graph/data2.csv', output, 'utf8');
-  });
+  return output;
 }

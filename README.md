@@ -9,7 +9,7 @@ Uses `esprima` and `estraverse` to walk the syntax tree, pick out any `require()
 From the command line, pass in a directory (to be analyed) and an output file:
 
 ```bash
-jsviz taco-project -o pages/taco.html
+jsviz taco-project > taco-project-viz.html
 ```
 
 From JavaScript:
@@ -23,5 +23,9 @@ var outputDir = './pages/';
 // Optional
 var callback = function(err) {};
 
-jsviz.generate(analysisDir, outputDir, callback);
+// Grab the dependency graph
+var graph = jsviz.graph(analysisDir, outputDir);
+
+// Grab the final html
+var html = jsviz.html(analysisDir, outputDir);
 ```
