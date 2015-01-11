@@ -2,11 +2,11 @@
   "name": "jsviz",
   "version": "1.0.0",
   "description": "",
-  "main": "foo.js",
+  "main": "viz.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Jeff Carpenter",
   "license": "ISC",
   "dependencies": {
     "csv-stringify": "0.0.5",
