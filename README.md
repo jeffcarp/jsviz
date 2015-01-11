@@ -2,7 +2,9 @@
 
 For visualizing the internal and external dependencies of a JavaScript codebase. Takes a directory to analyze and outputs an HTML file.
 
-Uses `esprima` and `estraverse` to walk the syntax tree, pick out any `require()` calls, and generate a dependency graph. Generates an HTML file that uses `d3` to visualize the graph. Example output:
+Uses `esprima` and `estraverse` to walk the syntax tree, pick out any `require()` calls, and generate a dependency graph. Generates an HTML file that uses `d3` to visualize the graph. Example output (of this project):
+
+![jsviz of jsviz](jsviz-example.png)
 
 ## Usage
 
