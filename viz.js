@@ -32,14 +32,14 @@ module.exports.graph = function (targetDir, callback) {
       var contents = fs.readFileSync(fileName, 'utf8');
 
       var ast = esprima.parse(contents);
-      var qualifiedFileName = qualifyFileName(fileName, fileName);
+      var qualifiedFileName = qualifyFileName(fileName, fileName, targetDir);
       requiresByFile[qualifiedFileName] = requiresByFile[qualifiedFileName] || [];
 
       estraverse.traverse(ast, {
         enter: function (node, parent) {
           if (nodeIsRequireCall(node)) {
             var requireTarget = node.arguments[0].value;
-            var qualifiedRequireName = qualifyFileName(fileName, requireTarget);
+            var qualifiedRequireName = qualifyFileName(fileName, requireTarget, targetDir);
 
             if (requiresByFile[qualifiedFileName].indexOf(qualifiedRequireName) === -1) {
               requiresByFile[qualifiedRequireName] = requiresByFile[qualifiedRequireName] || [];
@@ -86,7 +86,8 @@ function nodeIsRequireCall(node) {
   );
 }
 
-function qualifyFileName(sourceFile, requireName) {
+function qualifyFileName(sourceFile, requireName, targetDir) {
+  targetDir = path.resolve(targetDir);
   if (requireName.indexOf('.') === -1) {
     return requireName;
   } else {
@@ -94,7 +95,7 @@ function qualifyFileName(sourceFile, requireName) {
       requireName += '.js';
     }
     var resolvedPath = path.resolve(path.dirname(sourceFile), requireName);
-    var cleanPath = resolvedPath.replace(__dirname, '');
+    var cleanPath = resolvedPath.replace(targetDir, '');
     return cleanPath;
   }
 }
