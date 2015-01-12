@@ -10,8 +10,10 @@ links.forEach(function(link) {
     link.value = +link.value;
 });
 
-var width = 1400,
-    height = 760;
+var width = window.innerWidth,
+    height = window.innerHeight;
+
+var color = d3.scale.category20();
 
 var force = d3.layout.force()
     .nodes(d3.values(nodes))
@@ -57,13 +59,21 @@ var node = svg.selectAll(".node")
 
 // add the nodes
 node.append("circle")
-    .attr("r", 5);
+    .attr("r", 5)
+    .attr("fill", function(d, i) { return color(i); });
 
 // add the text
 node.append("text")
     .attr("x", 12)
     .attr("dy", ".35em")
-    .text(function(d) { return d.name; });
+    .attr("style", function(d) {
+      if (d.name.indexOf(".js") !== -1) {
+        return "font-weight: bold;";
+      }
+    })
+    .text(function(d) {
+      return d.name;
+    });
 
 // add the curvy lines
 function tick() {
