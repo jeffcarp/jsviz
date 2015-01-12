@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 var jsviz = require('./viz');
 
 var targetDir = process.argv[2];
