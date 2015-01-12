@@ -1,6 +1,6 @@
 {
   "name": "jsviz",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "viz.js",
   "scripts": {
@@ -19,6 +19,6 @@
   },
   "preferGlobal": "true",
   "bin": {
-    "jsviz" : "cli.js"
+    "jsviz": "cli.js"
   }
 }
