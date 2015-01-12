@@ -6,6 +6,9 @@ Uses `esprima` and `estraverse` to walk the syntax tree, pick out any `require()
 
 ![jsviz of jsviz](jsviz-example.png)
 
+- [See it live](http://jeffcarp.github.io/jsviz/jsviz.html)
+- [See jsviz of jsdom](http://jeffcarp.github.io/jsviz/jsdom.html)
+
 ## Usage
 
 From the command line, pass in a directory (that you want analyed) and an output file:
